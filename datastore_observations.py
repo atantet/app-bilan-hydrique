@@ -55,7 +55,7 @@ class DataStoreObservations(pn.viewable.Viewer):
     )
     nn_rayon_km = param.Number(
         softbounds=(1., 100.), bounds=(0., 1000.), step=1.,
-        doc="""Entrer la distance maximale des stations à la référence..."""
+        doc="""Entrer la distance maximale des stations à la référence (km)..."""
     )
     lire_donnee_liste_stations = param.Boolean(
         default=False,
@@ -160,7 +160,7 @@ class DataStoreObservations(pn.viewable.Viewer):
             self.param.recuperation_liste_stations_faite)
         self._nn_rayon_km_widget = pn.widgets.EditableFloatSlider.from_param(
             self.param.nn_rayon_km,
-            name="Distance maximale des stations à la référence (> 0)")
+            name="Distance max en km des stations à la référence (> 0)")
         self._bouton_liste_stations_nn = pn.widgets.Button(
             button_type='primary', width=LARGEUR_BOUTONS)
         self._sortie_bouton_liste_stations_nn = pn.bind(

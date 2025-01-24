@@ -184,7 +184,7 @@ class ViewerBilanObservations(View):
             margin=margin)
 
         # Liaison des stades au choix de culture
-        self._sortie_maj_stades_culture_choisie = pn.bind(
+        self._stade_widget.options = pn.bind(
             self._maj_stades_culture_choisie, self._culture_widget)
 
         # Liaison du plot au widgets
@@ -198,10 +198,7 @@ class ViewerBilanObservations(View):
         )
         
     def _maj_stades_culture_choisie(self, culture_choisie):
-        self._stade_widget.options = list(bilan.KC[culture_choisie])
-        self._stade_widget.value = list(bilan.KC[culture_choisie])[0]
-
-        return self._stade_widget
+        return list(bilan.KC[culture_choisie])
     
     def _creer_plot_sol(self, s, width=500, height=400):
         idx_deb = 1
@@ -263,8 +260,7 @@ class ViewerBilanObservations(View):
                            self._ru_vers_rfu_widget),
                     pn.Row(self._seuil_irrigation_widget,
                            self._hauteur_vers_duree_irrigation_widget),
-                    pn.Row(self._culture_widget,
-                           self._sortie_maj_stades_culture_choisie)
+                    pn.Row(self._culture_widget, self._stade_widget)
                 )
             
                 # Get the data
