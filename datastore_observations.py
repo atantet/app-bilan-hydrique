@@ -160,7 +160,7 @@ class DataStoreObservations(pn.viewable.Viewer):
             self.param.recuperation_liste_stations_faite)
         self._nn_rayon_km_widget = pn.widgets.EditableFloatSlider.from_param(
             self.param.nn_rayon_km,
-            name="Distance max en km des stations à la référence (> 0)")
+            name="Distance max (km) des stations à la référence (> 0)")
         self._bouton_liste_stations_nn = pn.widgets.Button(
             button_type='primary', width=LARGEUR_BOUTONS)
         self._sortie_bouton_liste_stations_nn = pn.bind(
