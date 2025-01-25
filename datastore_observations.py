@@ -2,6 +2,7 @@ import pandas as pd
 import param
 import panel as pn
 import traceback
+import warnings
 
 import bilan
 import etp
@@ -74,10 +75,10 @@ class DataStoreObservations(pn.viewable.Viewer):
         default=False,
         doc="""Cliquer pour lire la donnée météo pour la station de référence au lieu de la télécharger..."""
     )
+    recuperation_liste_stations_faite = param.Boolean(default=False)
+    selection_stations_plus_proches_faite = param.Boolean(default=False)
     recuperation_donnee_liste_stations_faite = param.Boolean(default=False)
     recuperation_donnee_ref_faite = param.Boolean(default=False)
-    selection_stations_plus_proches_faite = param.Boolean(default=False)
-    recuperation_liste_stations_faite = param.Boolean(default=False)
     
     def __init__(self, **params):
         super().__init__(**params)
@@ -206,6 +207,7 @@ class DataStoreObservations(pn.viewable.Viewer):
         self._sortie_recuperer_donnee_ref = pn.bind(
             self._montrer_donnee_ref_widgets,
             self.param.recuperation_donnee_liste_stations_faite,
+            self.param.selection_stations_plus_proches_faite,
             self._lire_donnee_ref_widget)
         self._bouton_donnee_ref = pn.widgets.Button(
             button_type='primary', width=LARGEUR_BOUTONS)
@@ -312,16 +314,20 @@ class DataStoreObservations(pn.viewable.Viewer):
     def _montrer_bouton_liste_stations_nn(
         self, ref_station_name, ref_station_altitude,
         ref_station_lat, ref_station_lon, nn_rayon_km
-    ):
-        self._bouton_liste_stations_nn.disabled = False
-        if (
+    ):  
+        self.selection_stations_plus_proches_faite = False
+        self.recuperation_donnee_liste_stations_faite = False
+        self.recuperation_donnee_ref_faite = False
+        
+        self._bouton_liste_stations_nn.disabled = True
+        if not (
             (ref_station_name is None) or
             (ref_station_altitude is None) or
             (ref_station_lat is None) or
             (ref_station_lon is None) or
             (nn_rayon_km == 0)
         ):
-            self._bouton_liste_stations_nn.disabled = True
+            self._bouton_liste_stations_nn.disabled = False
         return self._bouton_liste_stations_nn
 
     def _montrer_stations_plus_proches_widgets(
@@ -476,14 +482,22 @@ class DataStoreObservations(pn.viewable.Viewer):
                     # Demande de la donnée météo pour la liste des stations pour les dernières 24 h
                     variables = [self._client.variables_labels[METEOFRANCE_FREQUENCE][k]
                          for k in VARIABLES_POUR_CALCULS_SANS_ETP]
-                    self.tab_meteo.value = meteofrance.compiler_donnee_des_departements(
-                        self._client, self.tab_liste_stations_nn.value,
-                        frequence=METEOFRANCE_FREQUENCE)[variables]
+
+                    msg = pn.pane.Alert("Donnée météo pour la liste des stations téléchargée.",
+                                        alert_type="success")
+                    with warnings.catch_warnings(record=True) as w:
+                        warnings.simplefilter("always")
+                        self.tab_meteo.value = meteofrance.compiler_donnee_des_departements(
+                            self._client, self.tab_liste_stations_nn.value,
+                            frequence=METEOFRANCE_FREQUENCE)[variables]
+                        if w:
+                            for warning in w:
+                                msg = pn.pane.Alert(
+                                    f"Attention! donnée météo pour la liste des stations "
+                                    f"téléchargée, mais {warning.message}", alert_type="warning")
     
                     # Sauvegarde de la donnée météo pour la liste des stations
                     self.tab_meteo.value.to_csv(filepath)
-                    msg = pn.pane.Alert("Donnée météo pour la liste des stations téléchargée.",
-                                        alert_type="success")
 
                 assert len(self.tab_meteo.value) != 0, (
                     "La table de la donnée météo pour la liste des stations est vide!")
@@ -507,15 +521,16 @@ class DataStoreObservations(pn.viewable.Viewer):
             return sortie
 
     def _montrer_donnee_ref_widgets(
-        self, recuperation_donnee_liste_stations_faite, lire_donnee_ref
+        self, recuperation_donnee_liste_stations_faite,
+        selection_stations_plus_proches_faite, lire_donnee_ref
     ):
         titre = pn.pane.Markdown(
             "### Interpolation des données météo pour la station de référence")
         self._bouton_donnee_ref.disabled = True
         self._bouton_donnee_ref.name = (
             "D'abord récupérer la donnée météo des stations...")
-        if ((len(self.tab_meteo.value) > 0) or
-            ((len(self.tab_liste_stations_nn.value) > 0) and lire_donnee_ref)):
+        if (recuperation_donnee_liste_stations_faite or
+            (selection_stations_plus_proches_faite and lire_donnee_ref)):
             self._bouton_donnee_ref.disabled = False
             self._bouton_donnee_ref.name = (
                 "Cliquer pour récupérer la donnée météo pour la référence")
@@ -558,6 +573,12 @@ class DataStoreObservations(pn.viewable.Viewer):
 
                 df_meteo_ref_heure_si = meteofrance.convertir_unites(
                     self._client, df_meteo_ref_heure_renom)
+
+                # Exception si variable manquante
+                for variable in etp.VARIABLES_CALCUL_ETP:
+                    if df_meteo_ref_heure_si[variable].isnull().all():
+                        raise(ValueError(f"Donnée manquante pour {variable} "
+                                         f"nécessaire au calcul de l'ETP!"))
 
                 df_meteo_ref_heure_si['etp'] = etp.calcul_etp(
                     df_meteo_ref_heure_si,

@@ -418,7 +418,15 @@ def compiler_donnee_des_departements(
         df_toutes = pd.concat([df_toutes, df_departement])
 
     # Sélection des stations de la liste
-    df = df_toutes.loc[df_liste_stations.index]
+    try:
+        df = df_toutes.loc[df_liste_stations.index]
+    except KeyError:
+        df_idx0 = df_toutes.index.levels[0]
+        indices_commun = df_liste_stations.index.intersection(df_idx0)
+        df = df_toutes.loc[indices_commun]
+        indices_manquants = df_liste_stations.index.difference(df_idx0)
+        warnings.warn(
+            f"les stations {", ".join(indices_manquants.astype(str))} manquent.")
 
     # Suppression des duplicatas
     df = df[~df.index.duplicated(keep=False)]
