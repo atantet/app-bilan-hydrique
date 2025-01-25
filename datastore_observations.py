@@ -82,11 +82,6 @@ class DataStoreObservations(pn.viewable.Viewer):
     
     def __init__(self, **params):
         super().__init__(**params)
-    
-        if "date_deb" in params:
-            raise ValueError("Le paramètre 'date_deb' ne peut pas être changé, "
-                             "car la date de début est calculée à partir de la date de fin "
-                             "pour définir une période météo de 24 h.") 
             
         # Initialisation d'un client pour accéder à l'API Météo-France
         self._client = meteofrance.Client(METEOFRANCE_API)
@@ -306,7 +301,7 @@ class DataStoreObservations(pn.viewable.Viewer):
                 )
                 self.recuperation_liste_stations_faite = True
             except Exception as exc:
-                sortie = pn.pane.Str(traceback.format_exc())
+                sortie = pn.pane.Alert(traceback.format_exc(), alert_type="danger")
             return sortie
         else:
             return sortie
@@ -392,7 +387,7 @@ class DataStoreObservations(pn.viewable.Viewer):
                 )
                 self.selection_stations_plus_proches_faite = True
             except Exception as exc:
-                sortie = pn.pane.Str(traceback.format_exc())
+                sortie = pn.pane.Alert(traceback.format_exc(), alert_type="danger")
             return sortie
         else:
             return sortie
@@ -515,7 +510,7 @@ class DataStoreObservations(pn.viewable.Viewer):
                 )
                 self.recuperation_donnee_liste_stations_faite = True
             except Exception as exc:
-                sortie = pn.pane.Str(traceback.format_exc())
+                sortie = pn.pane.Alert(traceback.format_exc(), alert_type="danger")
             return sortie
         else:
             return sortie
@@ -577,8 +572,9 @@ class DataStoreObservations(pn.viewable.Viewer):
                 # Exception si variable manquante
                 for variable in etp.VARIABLES_CALCUL_ETP:
                     if df_meteo_ref_heure_si[variable].isnull().all():
-                        raise(ValueError(f"Donnée manquante pour {variable} "
-                                         f"nécessaire au calcul de l'ETP!"))
+                        return pn.pane.Alert(
+                            f"ValueError: Donnée manquante pour {variable} "
+                            f"nécessaire au calcul de l'ETP!", alert_type="danger")
 
                 df_meteo_ref_heure_si['etp'] = etp.calcul_etp(
                     df_meteo_ref_heure_si,
@@ -614,7 +610,7 @@ class DataStoreObservations(pn.viewable.Viewer):
                 )
                 self.recuperation_donnee_ref_faite = True
             except Exception as exc:
-                sortie = pn.pane.Str(traceback.format_exc())
+                sortie = pn.pane.Alert(traceback.format_exc(), alert_type="danger")
             return sortie
         else:
             return sortie
